@@ -197,3 +197,7 @@ venv
 /data/
 
 .vercel
+
+user_sessions.json
+traces.jsonl
+beetle_dev.db
