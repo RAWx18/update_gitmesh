@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { HubView, HubState } from '@/types/hub';
+import { HubView, HubState, AllViews } from '@/types/hub';
 
 interface NavigationState {
   currentView: HubView;
@@ -18,7 +18,7 @@ interface UseHubNavigationReturn {
   goBack: () => void;
   goForward: () => void;
   updateFilters: (filters: Partial<HubState['filters']>) => void;
-  getShareableUrl: (view?: HubView) => string;
+  getShareableUrl: (view?: AllViews) => string;
 }
 
 interface NavigationOptions {
@@ -44,24 +44,26 @@ export const useHubNavigation = (): UseHubNavigationReturn => {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   // Determine current view from pathname
-  const getCurrentViewFromPath = useCallback((): HubView => {
+  const getCurrentViewFromPath = useCallback((): AllViews => {
     const pathSegments = pathname.split('/');
-    const lastSegment = pathSegments[pathSegments.length - 1];
+    const lastSegment = pathSegments[pathSegments.length - 1] as AllViews;
     
-    switch (lastSegment) {
-      case 'overview':
-        return 'overview';
-      case 'projects':
-        return 'projects';
-      case 'activity':
-        return 'activity';
-      case 'insights':
-        return 'insights';
-      case 'contribution':
-        return 'overview';
-      default:
-        return 'overview';
+    // List of all valid views
+    const validViews: AllViews[] = [
+      'overview', 'projects', 'activity', 'insights', 
+      'what', 'why', 'how', 'chat', 'contribute', 'import', 
+      'manage', 'profile', 'search', 'settings'
+    ];
+
+    if (validViews.includes(lastSegment)) {
+      return lastSegment;
     }
+    
+    if (lastSegment === 'contribution') {
+      return 'what'; // Default to 'what' for /contribution
+    }
+
+    return 'overview'; // Default for /hub or any other case
   }, [pathname]);
 
   // Update navigation state when path changes
@@ -254,4 +256,4 @@ export const useHubNavigation = (): UseHubNavigationReturn => {
     updateFilters,
     getShareableUrl
   };
-};
+};;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useRef, useEffect, useCallback } from 'react';
 
 interface RepositoryData {
   name: string;
@@ -67,7 +67,7 @@ export const RepositoryProvider: React.FC<RepositoryProviderProps> = ({ children
     }
   }, []);
 
-  const handleSetRepository = (repo: RepositoryData | null) => {
+  const handleSetRepository = useCallback((repo: RepositoryData | null) => {
     // Compare only essential properties to avoid issues with timestamps
     const prevKey = prevRepositoryRef.current ? `${prevRepositoryRef.current.owner.login}/${prevRepositoryRef.current.name}` : null;
     const newKey = repo ? `${repo.owner.login}/${repo.name}` : null;
@@ -94,7 +94,7 @@ export const RepositoryProvider: React.FC<RepositoryProviderProps> = ({ children
         console.log('🔍 RepositoryContext: Repository set to:', newKey);
       }
     }
-  };
+  }, []);
 
   return (
     <RepositoryContext.Provider value={{ 

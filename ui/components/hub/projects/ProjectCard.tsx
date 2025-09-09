@@ -2,16 +2,30 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Repository } from '@/lib/github-api';
 import { Star, GitFork, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ProjectCardProps {
   repo: Repository;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ repo }) => {
-  const handleOpenInBeetle = () => {
-    // TODO: Implement the functionality to open the project in Beetle
-    console.log(`Opening ${repo.name} in Beetle`);
+  const router = useRouter();
+
+  const handleOpenInBeetle = (page: string) => {
+    const repoData = JSON.stringify(repo);
+    const encodedRepo = encodeURIComponent(repoData);
+    const path = page === 'what' ? '/contribution' : `/contribution/${page}`;
+    router.push(`${path}?repo=${encodedRepo}`);
   };
+
+  const contributionPages = ["overview", "chat", "contribute", "how", "import", "manage", "what", "why"];
+
 
   return (
     <Card className="flex flex-col">
@@ -36,7 +50,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ repo }) => {
           <Button variant="outline" size="sm" onClick={() => window.open(repo.html_url, '_blank')}>
             <ExternalLink className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={handleOpenInBeetle}>
+          <Button size="sm" onClick={() => handleOpenInBeetle('what')}>
             Open in Beetle
           </Button>
         </div>

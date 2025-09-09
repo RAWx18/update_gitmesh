@@ -222,12 +222,12 @@ async def get_auth_status(user: Optional[Dict[str, Any]] = Depends(get_current_u
 
 
 @router.get("/validate", response_model=TokenValidationResponse)
-async def validate_token(user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+async def validate_token(user: Optional[User] = Depends(get_current_user)):
     """Validate authentication token."""
     if not user:
         return TokenValidationResponse(valid=False)
     
-    return TokenValidationResponse(valid=True, user=User(**user))
+    return TokenValidationResponse(valid=True, user=user)
 
 
 @router.post("/logout", response_model=LogoutResponse)

@@ -4,13 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAnimateIn } from '@/lib/animations';
 import { BranchWhat } from '@/components/branch-content/BranchWhat';
-import { HubRouter } from '@/components/hub';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useBranch } from '@/contexts/BranchContext';
-import { HubView } from '@/types/hub';
-// TODO: Import proper toast library when available
+import { toast } from 'sonner';
 
 export default function ContributionPage() {
   const [loading, setLoading] = useState(false);
@@ -39,8 +36,10 @@ export default function ContributionPage() {
         window.history.replaceState({}, document.title, newUrl);
         
         // Show error toast
-        // TODO: Replace with proper toast notification
-        console.error('OAuth error:', decodeURIComponent(authMessage));
+        toast.error(decodeURIComponent(authMessage), {
+          description: "Redirecting to homepage",
+          duration: 5000,
+        });
         
         // Redirect to landing page on OAuth error
         router.push('/');
@@ -112,12 +111,10 @@ export default function ContributionPage() {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
         
-        // TODO: Replace with proper toast notification
-        console.log(`Opened ${validatedRepoData.full_name} in Beetle`);
+        toast.success(`Opened ${validatedRepoData.full_name} in Beetle`);
       } catch (error) {
         console.error('Error parsing repository data:', error);
-        // TODO: Replace with proper toast notification
-        console.error('Invalid repository data. Please try again.');
+        toast.error('Invalid repository data. Please try again.');
         // Redirect to landing page on error
         router.push('/');
       }
@@ -169,26 +166,6 @@ export default function ContributionPage() {
     }
   }, [isAuthenticated, searchParams, authProcessed, router]);
 
-  // Determine which interface to show based on repository and user context
-  const shouldShowHubInterface = repository && isAuthenticated;
-
-  // Show hub interface if repository is selected
-  if (shouldShowHubInterface) {
-    return (
-      <HubRouter
-        onError={(error) => {
-          console.error('Hub router error:', error);
-          // TODO: Replace with proper toast notification
-          console.error('An error occurred in the hub');
-        }}
-        onLoading={(isLoading) => {
-          setLoading(isLoading);
-        }}
-      />
-    );
-  }
-
-  // Show legacy interface for backward compatibility
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-24 h-screen">

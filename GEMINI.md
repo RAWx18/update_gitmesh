@@ -19,8 +19,10 @@
 - Do remove all dummy data and hardcoded values from the codebase.
 - Do build the global search to query the backend across all user-repositories.
 - Do ensure all frontend state is derived either from API calls or URL state.
+- Do ensure to use given files from ui/app and ui/components dir for /contribution page and id: 'what' as default.
 
 ## Don'ts
+- Don't try to simplify the ui of /contribution routing any page just fix the issue and make it working when enter to any repository from projects page
 - Don't hardcode the GitHub token; it must be securely retrieved from the user's login session class which is present in the codebase.
 - Don't mix hub-level state with contribution-level state.
 - Don't embed contribution-specific UI or logic within the `/hub` layout.

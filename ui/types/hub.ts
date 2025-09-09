@@ -254,12 +254,14 @@ export interface InsightsFilters {
  * Hub view types
  */
 export type HubView = 'overview' | 'projects' | 'activity' | 'insights';
+export type ContributionView = 'what' | 'why' | 'how' | 'overview' | 'chat' | 'contribute' | 'import' | 'manage' | 'profile' | 'search' | 'settings';
+export type AllViews = HubView | ContributionView;
 
 /**
  * Hub state interface
  */
 export interface HubState {
-  currentView: HubView;
+  currentView: AllViews;
   repository?: Repository;
   project?: Project;
   user?: User;

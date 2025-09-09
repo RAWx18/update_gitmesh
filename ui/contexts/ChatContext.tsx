@@ -1,10 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useRepository } from './RepositoryContext';
 import ChatAPI, { ChatMessage, ChatSession } from '@/lib/chat-api';
-import { useLocalStorage } from '@/contexts/LocalStorageContext';
 
 // Types for chat state management
 // ChatMessage and ChatSession are now imported from chat-api.ts
@@ -58,6 +57,7 @@ type ChatAction =
   | { type: 'CREATE_SESSION'; payload: { session: ChatSession } }
   | { type: 'UPDATE_SESSION'; payload: { sessionId: string; updates: Partial<ChatSession> } }
   | { type: 'DELETE_SESSION'; payload: { sessionId: string } }
+  | { type: 'SET_SESSIONS'; payload: { sessions: ChatSession[] } }
   | { type: 'SET_ACTIVE_SESSION'; payload: { sessionId: string } }
   | { type: 'ADD_MESSAGE'; payload: { sessionId: string; message: ChatMessage } }
   | { type: 'UPDATE_MESSAGE'; payload: { sessionId: string; messageId: string; updates: Partial<ChatMessage> } }
@@ -69,7 +69,6 @@ type ChatAction =
   | { type: 'SET_LOADING_STATE'; payload: { type: 'files' | 'chat' | 'sessions'; key?: string; loading: boolean } }
   | { type: 'SET_ERROR'; payload: { type: 'files' | 'chat' | 'sessions'; key?: string; error: string | null } }
   | { type: 'CLEAR_ERRORS'; payload: { type: 'files' | 'chat' | 'sessions' } }
-  | { type: 'LOAD_SESSIONS_FROM_STORAGE'; payload: { sessions: ChatSession[] } }
   | { type: 'RESET_STATE' };
 
 // Initial state
@@ -116,6 +115,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         sessions: state.sessions.filter(session => session.id !== action.payload.sessionId),
         activeSessionId: state.activeSessionId === action.payload.sessionId ? null : state.activeSessionId
+      };
+
+    case 'SET_SESSIONS':
+      return {
+        ...state,
+        sessions: action.payload.sessions
       };
 
     case 'SET_ACTIVE_SESSION':
@@ -258,12 +263,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         }
       };
 
-    case 'LOAD_SESSIONS_FROM_STORAGE':
-      return {
-        ...state,
-        sessions: action.payload.sessions
-      };
-
     case 'RESET_STATE':
       return initialState;
 
@@ -306,10 +305,6 @@ interface ChatContextType {
   generateMessageId: () => string;
   getFileCacheKey: (branch: string, path: string) => string;
   getFileHash: (content: string) => string;
-  
-  // Persistence
-  saveSessionsToStorage: () => void;
-  loadSessionsFromStorage: () => void;
 }
 
 // Create context
@@ -320,8 +315,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { token, user } = useAuth();
   const { repository } = useRepository();
-  const chatAPI = token ? new ChatAPI(token) : null;
-  const { getItem, setItem } = useLocalStorage();
+  const chatAPI = useMemo(() => token ? new ChatAPI(token) : null, [token]);
 
   // Generate unique IDs
   const generateSessionId = useCallback(() => {
@@ -394,12 +388,34 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [chatAPI, repository, generateSessionId]);
 
   const updateSession = useCallback((sessionId: string, updates: Partial<ChatSession>) => {
-    dispatch({ type: 'UPDATE_SESSION', payload: { sessionId, updates } });
-  }, []);
+    if (!chatAPI) {
+      dispatch({ type: 'UPDATE_SESSION', payload: { sessionId, updates } });
+      return;
+    }
+
+    chatAPI.updateSession(sessionId, updates).then(response => {
+      if (response.success) {
+        dispatch({ type: 'UPDATE_SESSION', payload: { sessionId, updates: response.session } });
+      }
+    }).catch(error => {
+      dispatch({ type: 'SET_ERROR', payload: { type: 'sessions', error: error instanceof Error ? error.message : 'Failed to update session' } });
+    });
+  }, [chatAPI]);
 
   const deleteSession = useCallback((sessionId: string) => {
-    dispatch({ type: 'DELETE_SESSION', payload: { sessionId } });
-  }, []);
+    if (!chatAPI) {
+      dispatch({ type: 'DELETE_SESSION', payload: { sessionId } });
+      return;
+    }
+
+    chatAPI.deleteSession(sessionId).then(response => {
+      if (response.success) {
+        dispatch({ type: 'DELETE_SESSION', payload: { sessionId } });
+      }
+    }).catch(error => {
+      dispatch({ type: 'SET_ERROR', payload: { type: 'sessions', error: error instanceof Error ? error.message : 'Failed to delete session' } });
+    });
+  }, [chatAPI]);
 
   const setActiveSession = useCallback((sessionId: string) => {
     dispatch({ type: 'SET_ACTIVE_SESSION', payload: { sessionId } });
@@ -510,73 +526,28 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'CLEAR_ERRORS', payload: { type } });
   }, []);
 
-  // Persistence
-  const saveSessionsToStorage = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const sessionsToSave = state.sessions.map(session => ({
-          ...session,
-          createdAt: (session.createdAt instanceof Date ? session.createdAt : new Date(session.createdAt)).toISOString(),
-          updatedAt: (session.updatedAt instanceof Date ? session.updatedAt : new Date(session.updatedAt)).toISOString(),
-          messages: session.messages.map(message => ({
-            ...message,
-            timestamp: (message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp)).toISOString()
-          }))
-        }));
-        
-        setItem('chat_sessions', JSON.stringify(sessionsToSave));
-        setItem('chat_active_session', state.activeSessionId || '');
-      } catch (error) {
-        console.error('Failed to save sessions to storage:', error);
-      }
-    }
-  }, [state.sessions, state.activeSessionId, setItem]);
-
-  const loadSessionsFromStorage = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedSessions = getItem('chat_sessions');
-        const activeSessionId = getItem('chat_active_session');
-        
-        if (savedSessions) {
-          const parsedSessions: ChatSession[] = JSON.parse(savedSessions).map((session: {createdAt: string, updatedAt: string, messages: Array<{timestamp: string}>}) => ({
-            ...session,
-            createdAt: new Date(session.createdAt),
-            updatedAt: new Date(session.updatedAt),
-            messages: session.messages.map((message: {timestamp: string}) => ({
-              ...message,
-              timestamp: new Date(message.timestamp)
-            }))
-          }));
-          
-          dispatch({ type: 'LOAD_SESSIONS_FROM_STORAGE', payload: { sessions: parsedSessions } });
-          
-          if (activeSessionId && parsedSessions.some(s => s.id === activeSessionId)) {
-            dispatch({ type: 'SET_ACTIVE_SESSION', payload: { sessionId: activeSessionId } });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load sessions from storage:', error);
-      }
-    }
-  }, [getItem]);
-
-  // Auto-save sessions when they change
-  useEffect(() => {
-    saveSessionsToStorage();
-  }, [state.sessions, state.activeSessionId, saveSessionsToStorage]);
-
   // Load sessions on mount
   useEffect(() => {
-    loadSessionsFromStorage();
-  }, [loadSessionsFromStorage]);
+    if (chatAPI && user) {
+      dispatch({ type: 'SET_LOADING_STATE', payload: { type: 'sessions', loading: true } });
+      chatAPI.getUserSessions(user.id).then(response => {
+        if (response.success) {
+          dispatch({ type: 'SET_SESSIONS', payload: { sessions: response.sessions } });
+        }
+      }).catch(error => {
+        dispatch({ type: 'SET_ERROR', payload: { type: 'sessions', error: error instanceof Error ? error.message : 'Failed to load sessions' } });
+      }).finally(() => {
+        dispatch({ type: 'SET_LOADING_STATE', payload: { type: 'sessions', loading: false } });
+      });
+    }
+  }, [chatAPI, user]);
 
   // Create initial session if none exists
   useEffect(() => {
     if (state.sessions.length === 0 && repository && !state.loadingStates.sessions) {
       createSession('New Chat');
     }
-  }, [state.sessions.length, repository]); // Removed createSession from dependencies
+  }, [state.sessions.length, repository, state.loadingStates.sessions, createSession]);
 
 
 
@@ -604,8 +575,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     generateMessageId,
     getFileCacheKey,
     getFileHash,
-    saveSessionsToStorage,
-    loadSessionsFromStorage
   };
 
   return (

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { HubView, HubState } from '@/types/hub';
+import { ContributionNavigation } from '../contribution/ContributionNavigation';
 import { HubNavigation } from './HubNavigation';
 import { OverviewDashboard } from './overview/OverviewDashboard';
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -16,12 +17,16 @@ interface HubRouterProps {
   className?: string;
   onError?: (error: Error) => void;
   onLoading?: (isLoading: boolean) => void;
+  isContribution?: boolean;
+  children: React.ReactNode;
 }
 
 export const HubRouter: React.FC<HubRouterProps> = ({
   className = '',
   onError,
-  onLoading
+  onLoading,
+  isContribution = false,
+  children,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -43,12 +48,7 @@ export const HubRouter: React.FC<HubRouterProps> = ({
       activity: {},
       insights: {}
     },
-    loading: {
-      overview: false,
-      projects: false,
-      activity: false,
-      insights: false
-    },
+    loading: {},
     errors: {}
   });
 
@@ -189,7 +189,7 @@ export const HubRouter: React.FC<HubRouterProps> = ({
   }, [hubState.currentView, onError]);
 
   // Handle loading states from child components
-  const handleLoadingChange = useCallback((view: HubView, isLoading: boolean) => {
+  const handleLoadingChange = useCallback((view: AllViews, isLoading: boolean) => {
     setHubState(prev => ({
       ...prev,
       loading: {
@@ -239,12 +239,21 @@ export const HubRouter: React.FC<HubRouterProps> = ({
   return (
     <div className={`min-h-screen bg-background ${className}`}>
       {/* Navigation */}
-      <HubNavigation
-        currentView={hubState.currentView}
-        onViewChange={handleViewChange}
-        repository={repository}
-        user={user}
-      />
+      {isContribution ? (
+        <ContributionNavigation
+          currentView={hubState.currentView}
+          onViewChange={handleViewChange}
+          repository={repository}
+          user={user}
+        />
+      ) : (
+        <HubNavigation
+          currentView={hubState.currentView}
+          onViewChange={handleViewChange}
+          repository={repository}
+          user={user}
+        />
+      )}
 
       {/* Main Content Area */}
       <main className="container mx-auto px-4 py-8">
@@ -253,18 +262,7 @@ export const HubRouter: React.FC<HubRouterProps> = ({
           animation="fade" 
           duration={300}
         >
-          {/* Route-specific content will be rendered by Next.js routing */}
-          {/* This component provides the navigation and state management */}
-          {/* The actual page content is rendered by the individual route components */}
-          
-          {/* Fallback content for direct access to /contribution */}
-          {hubState.currentView === 'overview' && pathname === '/contribution' && (
-            <OverviewDashboard
-              repository={repository}
-              onError={handleError}
-              onLoading={(isLoading) => handleLoadingChange('overview', isLoading)}
-            />
-          )}
+          {children}
         </AnimatedTransition>
       </main>
 

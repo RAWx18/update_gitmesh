@@ -19,12 +19,10 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ChatProvider>
+          <Navbar />
           <Toaster />
           <Sonner />
-          <div className="min-h-screen">
-            <Navbar />
-            {children}
-          </div>
+          {children}
         </ChatProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLocalStorage } from '@/contexts/LocalStorageContext';
 import {
   Dialog,
   DialogContent,
@@ -74,15 +73,14 @@ const BranchPlanner = ({ branch }: BranchPlannerProps) => {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [showReviewConfirmation, setShowReviewConfirmation] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ task: Task; targetStage: string } | null>(null);
-  const { getItem, setItem } = useLocalStorage();
 
-  const storageKey = `planner-${branch}`;
+  const storageKey = `beetle-planner-${branch}`;
 
   useEffect(() => {
     try {
-      const storedTasks = getItem(storageKey);
+      const storedTasks = localStorage.getItem(storageKey);
       if (storedTasks) {
-        setTasks(storedTasks);
+        setTasks(JSON.parse(storedTasks));
       } else {
         setTasks([]);
       }
@@ -90,15 +88,15 @@ const BranchPlanner = ({ branch }: BranchPlannerProps) => {
       console.error("Failed to load tasks from localStorage", error);
       setTasks([]);
     }
-  }, [branch, storageKey, getItem]);
+  }, [branch, storageKey]);
 
   useEffect(() => {
     try {
-      setItem(storageKey, tasks);
+      localStorage.setItem(storageKey, JSON.stringify(tasks));
     } catch (error) {
       console.error("Failed to save tasks to localStorage", error);
     }
-  }, [tasks, storageKey, setItem]);
+  }, [tasks, storageKey]);
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim() || !user) return;

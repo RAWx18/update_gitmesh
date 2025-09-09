@@ -5,7 +5,6 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useLocalStorage } from '@/contexts/LocalStorageContext';
 
 // A list of recommended bots that users can manage
 const recommendedBots = [
@@ -37,36 +36,35 @@ const BotLogs = ({ activities, branch }: { activities: any[], branch: string }) 
   const { repository } = useRepository();
   const [enabledBots, setEnabledBots] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const { getItem, setItem } = useLocalStorage();
 
   const isOwner = user?.login === repository?.owner?.login;
-  const storageKey = `bots-${repository?.owner?.login}-${repository?.name}`;
+  const storageKey = `beetle-bots-${repository?.owner?.login}-${repository?.name}`;
 
   // Load bot settings from local storage for the owner
   useEffect(() => {
     if (isOwner) {
       try {
-        const storedSettings = getItem(storageKey);
+        const storedSettings = localStorage.getItem(storageKey);
         if (storedSettings) {
-          setEnabledBots(storedSettings);
+          setEnabledBots(JSON.parse(storedSettings));
         }
       } catch (e) {
         console.error("Failed to load bot settings from localStorage", e);
       }
     }
     setLoading(false);
-  }, [isOwner, storageKey, getItem]);
+  }, [isOwner, storageKey]);
 
   // Save bot settings to local storage when they change
   useEffect(() => {
     if (isOwner && !loading) {
       try {
-        setItem(storageKey, enabledBots);
+        localStorage.setItem(storageKey, JSON.stringify(enabledBots));
       } catch (e) {
         console.error("Failed to save bot settings to localStorage", e);
       }
     }
-  }, [enabledBots, isOwner, storageKey, loading, setItem]);
+  }, [enabledBots, isOwner, storageKey, loading]);
 
   const handleBotToggle = (botId: string, isEnabled: boolean) => {
     setEnabledBots(prev => ({ ...prev, [botId]: isEnabled }));

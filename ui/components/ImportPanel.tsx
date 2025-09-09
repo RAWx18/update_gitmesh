@@ -1,4 +1,3 @@
-import { useLocalStorage } from '@/contexts/LocalStorageContext';
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -1452,17 +1451,16 @@ export const ImportPanel: React.FC = () => {
         toast.success(`Successfully prepared ${filesToImport.length} files from ${selectedBranches.length} branch(es) for chat!`);
       }
       
-      const { getItem, setItem } = useLocalStorage();
       // Store imported data in localStorage for chat context
       if (importedData) {
-        const existingImports = getItem('imported_data') || [];
+        const existingImports = JSON.parse(localStorage.getItem('beetle_imported_data') || '[]');
         const newImport = {
           id: Date.now().toString(),
           timestamp: new Date().toISOString(),
           repository: repository?.full_name || 'default',
           data: importedData
         };
-        setItem('imported_data', [...existingImports, newImport]);
+        localStorage.setItem('beetle_imported_data', JSON.stringify([...existingImports, newImport]));
       }
       
       // Clear form data after successful import

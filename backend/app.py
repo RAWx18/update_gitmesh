@@ -137,7 +137,7 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(github_router, prefix="/api/v1/github", tags=["github"])

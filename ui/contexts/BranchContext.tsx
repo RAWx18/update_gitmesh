@@ -11,6 +11,7 @@ export type BranchType = string; // Now any branch name
 
 interface BranchInfo {
   name: string;
+  sha: string;
   color: string;
   description: string;
   maintainer: string;
@@ -21,6 +22,7 @@ interface BranchContextType {
   selectedBranch: BranchType;
   setSelectedBranch: (branch: BranchType) => void;
   branchList: string[];
+  branchInfoMap: Record<string, BranchInfo>;
   getBranchInfo: () => BranchInfo;
 }
 
@@ -97,13 +99,14 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
           
           // Update branch info map
           const infoMap: Record<string, BranchInfo> = {};
-          branches.forEach((branch: string) => {
-            infoMap[branch] = {
-              name: branch,
-              color: branch === 'main' || branch === 'dev' ? 'text-blue-600' : branch === 'agents' ? 'text-emerald-600' : branch === 'snowflake' ? 'text-cyan-600' : 'text-gray-600',
-              description: branch === repository.default_branch ? 'Default branch' : '',
+          branches.forEach((branch: any) => {
+            infoMap[branch.name] = {
+              name: branch.name,
+              sha: branch.commit.sha,
+              color: branch.name === 'main' || branch.name === 'dev' ? 'text-blue-600' : branch.name === 'agents' ? 'text-emerald-600' : branch.name === 'snowflake' ? 'text-cyan-600' : 'text-gray-600',
+              description: branch.name === repository.default_branch ? 'Default branch' : '',
               maintainer: '',
-              githubUrl: `${repository.html_url}/tree/${branch}`,
+              githubUrl: `${repository.html_url}/tree/${branch.name}`,
             };
           });
           setBranchInfoMap(infoMap);
@@ -127,7 +130,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   };
 
   return (
-    <BranchContext.Provider value={{ selectedBranch, setSelectedBranch, branchList, getBranchInfo }}>
+    <BranchContext.Provider value={{ selectedBranch, setSelectedBranch, branchList, branchInfoMap, getBranchInfo }}>
       {children}
     </BranchContext.Provider>
   );

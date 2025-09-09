@@ -12,7 +12,7 @@ interface ApiResponse<T> {
 
 class ApiService {
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('beetle_token');
+    const token = localStorage.getItem('gitmesh_token');
     return {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })

@@ -358,6 +358,23 @@ class GitHubAPI {
     return response.branches;
   }
 
+  // Create a new branch
+  async createBranch(owner: string, repo: string, branchName: string, sha: string) {
+    const response = await this.request(`/github/repositories/${owner}/${repo}/branches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha }),
+    });
+    return response;
+  }
+
+  // Delete a branch
+  async deleteBranch(owner: string, repo: string, branchName: string) {
+    const response = await this.request(`/github/repositories/${owner}/${repo}/branches/${branchName}`, {
+      method: 'DELETE',
+    });
+    return response;
+  }
+
   // Get repository contributors
   async getRepositoryContributors(owner: string, repo: string) {
     const response = await this.request(`/github/repositories/${owner}/${repo}/contributors`);
@@ -368,6 +385,12 @@ class GitHubAPI {
   async getRepositoryLanguages(owner: string, repo: string) {
     const response = await this.request(`/github/repositories/${owner}/${repo}/languages`);
     return response.languages;
+  }
+
+  // Get user by username
+  async getUserByUsername(username: string) {
+    const response = await this.request(`/github/users/${username}`);
+    return response.user;
   }
 
   // Get current user profile
